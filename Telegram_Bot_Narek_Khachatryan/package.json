@@ -1,0 +1,19 @@
+{
+  "name": "telegram-news-bot",
+  "version": "1.0.0",
+  "description": "A Telegram bot that provides the latest news headlines.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "node-telegram-bot-api": "^0.50.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
+}
