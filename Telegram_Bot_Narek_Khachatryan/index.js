@@ -7,16 +7,72 @@ const bot = new TelegramBot(token, { polling: true });
 const NEWS_API_KEY = 'a992ba3cf8f0400193424bd800e82811';
 const NEWS_API_URL = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${NEWS_API_KEY}`;
 
-
 let userName = {}; 
-let favoriteCountries = {}; 
+let favoriteCountries = {};
+
+const countryCodes = [
+  { code: 'ae', name: 'United Arab Emirates' },
+  { code: 'ar', name: 'Argentina' },
+  { code: 'at', name: 'Austria' },
+  { code: 'au', name: 'Australia' },
+  { code: 'be', name: 'Belgium' },
+  { code: 'bg', name: 'Bulgaria' },
+  { code: 'br', name: 'Brazil' },
+  { code: 'ca', name: 'Canada' },
+  { code: 'ch', name: 'Switzerland' },
+  { code: 'cn', name: 'China' },
+  { code: 'co', name: 'Colombia' },
+  { code: 'cu', name: 'Cuba' },
+  { code: 'cz', name: 'Czech Republic' },
+  { code: 'de', name: 'Germany' },
+  { code: 'eg', name: 'Egypt' },
+  { code: 'fr', name: 'France' },
+  { code: 'gb', name: 'United Kingdom' },
+  { code: 'gr', name: 'Greece' },
+  { code: 'hk', name: 'Hong Kong' },
+  { code: 'hu', name: 'Hungary' },
+  { code: 'id', name: 'Indonesia' },
+  { code: 'ie', name: 'Ireland' },
+  { code: 'il', name: 'Israel' },
+  { code: 'in', name: 'India' },
+  { code: 'it', name: 'Italy' },
+  { code: 'jp', name: 'Japan' },
+  { code: 'kr', name: 'Korea' },
+  { code: 'lt', name: 'Lithuania' },
+  { code: 'lv', name: 'Latvia' },
+  { code: 'ma', name: 'Morocco' },
+  { code: 'mx', name: 'Mexico' },
+  { code: 'my', name: 'Malaysia' },
+  { code: 'ng', name: 'Nigeria' },
+  { code: 'nl', name: 'Netherlands' },
+  { code: 'no', name: 'Norway' },
+  { code: 'nz', name: 'New Zealand' },
+  { code: 'ph', name: 'Philippines' },
+  { code: 'pl', name: 'Poland' },
+  { code: 'pt', name: 'Portugal' },
+  { code: 'ro', name: 'Romania' },
+  { code: 'rs', name: 'Serbia' },
+  { code: 'ru', name: 'Russia' },
+  { code: 'sa', name: 'Saudi Arabia' },
+  { code: 'se', name: 'Sweden' },
+  { code: 'sg', name: 'Singapore' },
+  { code: 'si', name: 'Slovenia' },
+  { code: 'sk', name: 'Slovakia' },
+  { code: 'th', name: 'Thailand' },
+  { code: 'tr', name: 'Turkey' },
+  { code: 'tw', name: 'Taiwan' },
+  { code: 'ua', name: 'Ukraine' },
+  { code: 'us', name: 'United States' },
+  { code: 've', name: 'Venezuela' },
+  { code: 'za', name: 'South Africa' }
+];
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, 'Hello! What is your name?');
 
   bot.on('message', (msg) => {
-    if (!userName[chatId]) { 
+    if (!userName[chatId]) {
       userName[chatId] = msg.text;
       bot.sendMessage(chatId, `Nice to meet you, ${userName[chatId]}!`, {
         reply_markup: {
@@ -38,11 +94,7 @@ bot.on('callback_query', (callbackQuery) => {
   if (action === 'world_news') {
     fetchAndSendNews(chatId, 'world');
   } else if (action === 'news_by_country') {
-    bot.sendMessage(chatId, 'Please enter the country code (e.g., us, gb, in):');
-    bot.once('message', (msg) => {
-      const country = msg.text.trim().toLowerCase();
-      fetchAndSendNews(chatId, country);
-    });
+    sendCountryList(chatId);
   } else if (action === 'favorite_countries_news') {
     if (favoriteCountries[chatId] && favoriteCountries[chatId].length > 0) {
       favoriteCountries[chatId].forEach(country => {
@@ -59,15 +111,36 @@ bot.on('callback_query', (callbackQuery) => {
         bot.sendMessage(chatId, `${country.toUpperCase()} added to your favorite countries.`);
       });
     }
+  } else if (action.startsWith('country_')) {
+    const country = action.split('_')[1];
+    fetchAndSendNews(chatId, country);
   }
 });
 
+function sendCountryList(chatId) {
+  const inlineKeyboard = [];
+  countryCodes.forEach(country => {
+    inlineKeyboard.push([{ text: country.name, callback_data: `country_${country.code}` }]);
+  });
+  bot.sendMessage(chatId, 'Please choose a country:', {
+    reply_markup: {
+      inline_keyboard: inlineKeyboard
+    }
+  });
+}
+
 function fetchAndSendNews(chatId, country) {
-  const url = country === 'world' ? NEWS_API_URL : `${NEWS_API_URL}&country=${country}`;
+  let url;
+  if (country === 'world') {
+    url = `${NEWS_API_URL}&country=`; 
+  } else {
+    url = `${NEWS_API_URL}&country=${country}`; 
+  }
+
   axios.get(url)
     .then(response => {
       const articles = response.data.articles;
-      let newsMessage = `Here are the latest news headlines for you, ${userName[chatId]}:\n\n`;
+      let newsMessage = `Here are the latest news headlines for ${country === 'world' ? 'the world' : countryCodes.find(c => c.code === country).name}:\n\n`;
 
       articles.forEach((article, index) => {
         newsMessage += `${index + 1}. <a href="${article.url}">${article.title}</a>\n`;
